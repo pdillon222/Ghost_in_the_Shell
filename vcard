@@ -63,8 +63,6 @@ footer() {
     echo "END:VCARD"
 }
 org() {
-    # here's an example function for organization
-    # it's a simple one and seems to work well
     local co dept
     read -p "Company name (empty to skip,or type 'q' to quit vcard entry):" co
     [ -z "$co" ] && return 0
@@ -78,7 +76,6 @@ org() {
     echo "ORG:$co;$dept"
 }
 
-# I'm giving you the bday function. It is one of the hardest.
 isint() {
     if ! [[ "$1" =~ ^[[:digit:]]+$ ]] ;then
         echo "'$1' is not an integer" >&2
@@ -86,8 +83,6 @@ isint() {
     fi
 }
 
-# the bday function seems to work okay
-# but there is a SMALL bug (Line:79; Changed -lt 0 to -lt 1). Can you find it? (hint: the month)
 bday() {
     local year day month curyear
     echo "Enter birthday:" >&2
@@ -150,8 +145,6 @@ bday() {
     [ "$month" -lt 10 ] && month=0${month}
     echo "BDAY:$year-$month-$day"
 }
-
-# you'll need functions for name, telephone, email, and note to finish
 
 name() {
     local fname lname mname title
@@ -267,7 +260,7 @@ vcard1() {
 
 vcfile=$1 #creates the permanent vcard file, must be writable. If it exists, make sure it is writable.  If not, create a new writable file...
 
-# once you have checked the argument ($vcfile) out, you create a temp file
+# once you have checked the argument ($vcfile) out,create a temp file
 # for the current vcard
 checkdir=$(dirname "$vcfile")
 if ! [ -f $vcfile ]; then
