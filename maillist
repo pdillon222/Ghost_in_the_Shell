@@ -1,10 +1,5 @@
 #!/bin/bash
 
-#James Dillon
-#cs260a
-#Weds 6:10pm
-#jdillon
-
 ######################################################################################################
 #******************************************Maillist**************************************************#
 #Given a specified 5 digit city college class CRN:                                                   #
@@ -36,7 +31,7 @@ crn=false
 quiet=false
 progname=$(basename $0)
 #Begin testing for initial argument conditions
-if [[  $# != 1 && $# -ne 2 ]]; then #allows for reset if $# is 0 or >2
+if [[  $# != 1 && $# != 2 ]]; then #allows for reset if $# is 0 or >2
     echo "Running $progname requires one or two arguments" >&2
     echo "Usage: $progname [-q] 12345" >&2
     read -p "Input choice of quiet vs. non-quiet mode
