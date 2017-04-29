@@ -2,7 +2,7 @@
 
 ###########################################################################################################
 #vcard program will take in a single argument (file).  If file does not exist, one will be created.       #
-#If a file is to be created, it must be in a directory writable the user                                  #
+#If a file is to be created, it must be in a directory writable by the user                               #
 #The program will build a Vcard, and begin prompting the user for inputs.                                 #
 #The Name section may not be left blank, but all other fields are optional.                               #
 #The program will prompt for all possible fields [Name, phone, e-mail, company, and additional notes].    #
