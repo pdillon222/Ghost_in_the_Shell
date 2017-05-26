@@ -1,4 +1,7 @@
 #!/bin/bash
+#Gross margin program for input component prices
+#program must run on MAC / BSD systems
+
 item=1
 prodprice=0
 
