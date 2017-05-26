@@ -1,0 +1,39 @@
+#!/bin/bash
+item=1
+prodprice=0
+
+function uppercase() {
+    #translate a string into all uppercase letters (to minimize user input error)
+    word=$(echo $1 | sed 'y/abcdefghijklmnopqrstuvwxyz/ABCDEFGHIJKLMNOPQRSTUVWXYZ/')
+    echo $word
+}
+
+
+while : ;do
+    read -p "Please enter cost of component $item: " cost
+    [[ ! $cost =~ ^[0-9]*\.?[0-9]*$ ]] && echo "Cost must be a in integer format
+Please try again" && continue
+     
+    read -p "Please enter quantity of component $item: " quant
+    while [[ ! $quant =~ ^[0-9]*\.?[0-9]*$ ]];do
+        echo "Quantity must be in integer format 
+Please try again"   
+        read -p "Please enter quantity of item $item: " quant
+    done
+    totprice=$(( cost * quant ))
+    echo "Price of component ${item} is \$$totprice"
+    prodprice=$((prodprice + totprice))
+    ((++item))
+    read -p "Are there more components associated with the fixture? {yes | no}: " comprompt
+    uppercase $comprompt
+    while [[ $word != "YES" && $word != "NO" ]];do
+        read -p "Please input either 'yes' or 'no': " comprompt
+        uppercase $comprompt
+    done
+    comprompt=$word
+    [[ $comprompt =~ "NO" ]] && break || continue
+done   
+
+echo "You selected 'NO', you done motherfucker 
+Total production costs thus far are \$$prodprice"
+
