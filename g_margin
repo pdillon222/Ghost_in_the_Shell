@@ -7,6 +7,7 @@ prodprice=0
 
 function uppercase() {
     #translate a string into all uppercase letters (to minimize user input error)
+    #BSD does not support parameter substitution
     word=$(echo $1 | sed 'y/abcdefghijklmnopqrstuvwxyz/ABCDEFGHIJKLMNOPQRSTUVWXYZ/')
     echo $word
 }
