@@ -77,5 +77,3 @@ for i in ${item_name[*]}; do
     echo "${item_name[$item_counter]}=${item_price[$item_counter]}"
 done
 
-#commit_test
-#another commit_test
