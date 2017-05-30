@@ -1,0 +1,299 @@
+#!/bin/bash
+
+###########################################################################################################
+#vcard program will take in a single argument (file).  If file does not exist, one will be created.       #
+#If a file is to be created, it must be in a directory writable by the user                               #
+#The program will build a Vcard, and begin prompting the user for inputs.                                 #
+#The Name section may not be left blank, but all other fields are optional.                               #
+#The program will prompt for all possible fields [Name, phone, e-mail, company, and additional notes].    #
+#The program will force data validation for acceptable user inputs for various fields.                    #
+#The program will allow the user to quit Vcard entry at the beginning of each new field entry.            #
+#If the user chooses to quit, they will have the option of adding another Vcard entry to the current file.#
+#User will also have the option of creating a new vcard file.                                             #
+###########################################################################################################
+
+runcard () {
+
+error () {
+    # error: output an error message and return
+    # the error messages contain the program name
+    # and are written to standard error
+
+    local prog=$(basename $0)
+    echo -e "$prog:ERROR: $*">&2
+}
+
+fatal() {
+    # fatal: output an error message and then exit
+    # the error() function is used.
+    local prog=$(basename $0)
+    error $*
+    # if you want to output a message about how to successfully
+    # run your program (called a 'usage message'), this would
+    # be the place to do it
+    echo -e "$prog: USAGE: $prog vcardfile" >&2
+    # now exit with an error
+    exit 1
+}
+
+fix() {
+    echo "$1" | sed 's/\([,;]\)/\\\1/g'
+}
+
+qenter() {
+    read -p "Would you like to quit the program, or enter Vcard info to another file?
+[Enter 'q' to quit or 'n' for new entry]:" prmpt
+    while ! [ "$prmpt" == 'q' -o "$prmpt" == 'n' ]; do
+        echo "'$1' is not a valid option" >&2
+        read -p "Please enter 'q' to quit or 'n' for new entry:" prmpt
+    done
+    [ "$prmpt" == 'q' ] && exit 0
+    [ "$prmpt" == 'n' ] && read -p "Please enter new or existing file to add Vcard entry to:" centry
+    runcard "$centry"
+} 
+
+
+#
+# sample functions
+#
+header() {
+    echo -e "BEGIN:VCARD\nVERSION:3.0"
+}
+footer() {
+    echo "END:VCARD"
+}
+org() {
+    local co dept
+    read -p "Company name (empty to skip,or type 'q' to quit vcard entry):" co
+    [ -z "$co" ] && return 0
+    [ "$co" == "q" ] && qenter
+    co=$(fix "$co")
+    read -p "Department name:" dept
+    while [ -z "$dept" ];do
+        read -p "Please enter your department:" dept
+    done
+    dept=$(fix "$dept")
+    echo "ORG:$co;$dept"
+}
+
+isint() {
+    if ! [[ "$1" =~ ^[[:digit:]]+$ ]] ;then
+        echo "'$1' is not an integer" >&2
+        return 1
+    fi
+}
+
+bday() {
+    local year day month curyear
+    echo "Enter birthday:" >&2
+    read  -p "Enter 4-digit year (empty to skip birthday, or type 'q' to quit vcard entry):" year
+    [ "$year" == "q" ] && qenter
+    [ -z "$year" ] && return 0
+    # year must be integer. 
+    while true; do
+        curyear=$(date "+%Y")
+        if ! isint "$year" || ! [ ${#year} == 4 ]; then
+            echo "Birthyear should be a 4 digit integer, please try again" >&2
+            read -p "Enter 4-digit year:" year
+    
+    # dont allow year to be in the future or more than 120 years ago.
+        elif ((curyear - year > 120)); then
+            echo "sorry. you're too old to be alive!" >&2
+            read -p "Please enter your birth year again:" year
+            
+        elif ((curyear < year)); then
+                echo "you haven't been born yet?" >&2
+                read -p "Please enter your actual birth year:" year
+        else
+            break
+        fi   
+    done
+    read -p "Enter a month number (1-12):" month
+    while true; do
+        if ! isint "$month"; then
+            echo "Month entered must be an integer." >&2
+            read -p "Please enter your birth month in numerical format:" month    
+        elif [ "$month" -lt 1 -o "$month" -gt 12 ]; then
+            echo "month must be in [1,12]" >&2
+            read -p "Please enter a number between 1 (but including) and 12:" month 
+        elif echo "$month" | grep "^0"; then
+            echo "Please do not enter a preceding 0 for the month entry" >&2
+            read -p "Please enter again without a 0 as the first digit:" month
+        else
+            break
+        fi
+    done
+    read -p "Enter a day number (1-31):" day
+    while true; do
+        if ! isint "$day";then
+            echo "Day entered must be an integer" 
+            read -p "Please enter a day in numerical format:" day
+        elif [ "$day" -le 0 -o "$day" -gt 31 ]; then
+            echo "day must be in [1,31]" >&2
+            read -p "Please enter a number between 1 (but including) and 31:" day
+        elif echo "$day" | grep "^0"; then
+            echo "Please do not enter a preceding 0 for the day entry" >&2
+            read -p "Please enter again without a 0 as the first digit:" day
+        elif [ "$month" -eq "2" -a "$day" -gt "29" ]; then
+            echo "There is no day '$day' in the specified month" >&2
+            read -p "Please enter day again:" day
+        else
+            break    
+        fi
+    done
+    [ "$day" -lt 10 ] && day=0${day}
+    [ "$month" -lt 10 ] && month=0${month}
+    echo "BDAY:$year-$month-$day"
+}
+
+name() {
+    local fname lname mname title
+    read -p "Enter your first name (or type 'q' to quit vcard entry):" fname
+    [ "$fname" == "q" ] && qenter
+    read -p "Enter your middle name (or leave empty if none):" mname
+    read -p "Enter your last name:" lname
+    while [ -z $fname ] && [ -z $mname ] && [ -z $lname ]; do
+        read -p "Vcard name field may not be left empty.
+Enter your first name (or type 'q' to quit vcard entry):" fname
+        [ "$fname" == "q" ] && exit 0
+        read -p "Enter your middle name (or leave empty if none):" mname
+        read -p "Enter your last name:" lname
+    done
+    read -p "Enter your title [leave empty if none]
+(title may be Mr., Ms., Mrs. or Dr. only):" title
+    while [[ ! $title == "Mr." ]] && [[ ! $title == "Ms." ]] && [ ! -z $title ] && [[ ! $title == "Mrs." ]] && [[ ! $title == "Dr." ]] ; do
+        echo "Title is of an unknown type, please try again."
+        read -p "Title is of an unknown type, please try again. 
+Enter your title [leave empty if none]
+(title may be Mr., Ms., Mrs. or Dr. only):" title
+    done
+    if [ -z $title ];then
+        echo "FN:$fname $mname $lname"
+        echo "N:$lname;$fname;$mname;"
+    else
+        echo "FN:$title $fname $mname $lname"
+        echo "N:$lname;$fname;$mname;$title;"
+    fi
+}
+
+telephone() {
+    local acode phone ptype
+    phonelist=$(mktemp)
+    while true; do
+        read -p "Please enter 3 digit area code (leave empty to skip, or type 'q' to quit vcard entry):" acode
+        [ -z "$acode" ] && return 0
+        [ "$acode" == 'q' ] && qenter
+        acode="($acode)"
+        read -p "Please enter 7 digit phone telephone number:" phone
+        phone=$"$acode$phone"
+        while ! echo $phone | grep -qE "^(\([[:digit:]]{3}\)|[[:digit:]]{3}[-. ]?)[[:digit:]]{3}[-. ]?[[:digit:]]{4}$"; do
+            read -p "Phone number does not match a valid format.
+Aread code must be 3 digits(123), and phone number must be 3 digits(123) followed by a hyphen(-) followed by 4 digits(1234)
+Example: 123 123-1234
+Please enter area code again:" acode   
+            acode="($acode)"
+            read -p "Please enter 7 digit phone telephone number:" phone
+            phone=$"$acode$phone"
+        done
+        read -p "Please enter the phone type [cell, home or work]:" ptype
+        ptype=${ptype^^}
+        while [[ $ptype != "CELL" ]] && [[ $ptype != "HOME" ]] && [[ $ptype != "WORK" ]]; do
+            read -p "Phone type is of an unkown format, please enter cell, home or work only.
+try again:" ptype
+        done
+        if [ $ptype == "CELL" ]; then
+            echo "TEL;TYPE=$ptype:$phone" >> $phonelist
+        else
+            echo "TEL;TYPE=$ptype,VOICE:$phone" >> $phonelist
+        fi
+        read -p "Would you like to add another phone number ('yes' or 'no'):" next
+        if [ $next == "yes" ]; then
+            continue
+        else
+            while read line; do
+                echo "$line"
+            done < $phonelist
+            break
+        fi
+    done 
+    rm -f "$phonelist"  
+}    
+
+email() {
+    local mail
+    read -p "Please enter email address (leave empty to skip, or type 'q' to quit vcard entry):" mail
+    [ -z "$mail" ] && return 0
+    [ "$mail" == 'q' ] && qenter
+    while ! echo $mail | grep -qE "([a-zA-Z0-9_\-\.]+)@([a-zA-Z0-9_\-\.]+)\.([a-zA-Z]{2,5})$"; do
+        read -p "Email entered is not a valid format, please try again:" mail
+    done
+    echo "EMAIL;TYPE=INTERNET:$mail"
+}
+
+note() {
+    local notes
+    read -p "Please enter any notes (leave empty to skip, or type 'q' to quit vcard entry):" notes
+    [ -z "$notes" ] && return 0
+    [ "$notes" == 'q' ] && qenter
+    notes=$(fix "$notes")
+    echo "NOTE:$notes"
+}
+
+
+vcard1() {
+    header
+    name || return 1
+    org || return 1
+    telephone || return 1
+    email || return 1 
+    bday || return 1
+    note || return 1
+    footer
+}
+
+
+# argument handling. You must
+#  - check that there is a single argument
+#  - if it exists, it must be a writable file
+#  - if it doesnt exist, you must be able to write to the directory it is in
+[[ $# != 1 ]] && fatal "Must provide exactly one argument"
+
+vcfile=$1 #creates the permanent vcard file, must be writable. If it exists, make sure it is writable.  If not, create a new writable file...
+
+# once you have checked the argument ($vcfile) out,create a temp file
+# for the current vcard
+checkdir=$(dirname "$vcfile")
+if ! [ -f $vcfile ]; then
+    while ! [ -w "$checkdir" ]; do
+        echo "You do not have write permissions for directory '$checkdir'" >&2
+        read -p "Please enter a filename in a different file directory:" vcfile
+        checkdir=$(dirname "$vcfile")
+    done
+fi
+while [ ! -w "$vcfile" -a -e "$vcfile" ]; do
+    echo "You do not have write permissions for $vcfile" >&2
+    read -p "Please enter a different file name:" vcfile
+done    
+
+# create a temp file for the current vcf
+thisvcf=$(mktemp)
+
+# this redirects all further stdout to the temp file
+# MAKE SURE from this point on, that all prompts and error messages to to stderr
+exec > "$thisvcf"
+
+# call the function to create a single vcard. If it succeeds,
+# append the current vcard to the file. otherwise give an error message
+vcard1 && cat "$thisvcf" >> "$vcfile" || error "bad vcard entry!"
+
+rm -f "$thisvcf"
+
+read -p "Would you like to add another entry to "$vcfile" file [yes or no]?" append
+while [[ ! $append == "yes" && ! $append == "no" ]]; do
+    read -p "Entry not recognized, please enter 'yes' to add another entry 'no' to quit:" append
+done
+[[ $append == "yes" ]] && runcard "$vcfile"
+[[ $append == "no" ]] && qenter
+}
+
+runcard $1

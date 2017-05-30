@@ -1,0 +1,110 @@
+#!/bin/bash
+
+######################################################################################################
+#******************************************Maillist**************************************************#
+#Given a specified 5 digit city college class CRN:                                                   #
+#Maillist program will produce a list of all members of the class group                              #
+#Maillist requires either 1 or 2 arguments                                                           #
+#If only 1 argument is entered, it must be a valid 5 digit CRN number                                #
+#If two arguments are entered, the first argument must be '-q'                                       #
+#****************************************************************************************************#
+#************************** Usage: maillist 12345 || maillist -q 12345*******************************#
+#****************************************************************************************************#
+#If argument '-q' is entered, maillist will run in 'quietmode'                                       #
+#In 'quietmode', any input errors will cause the program to terminate with exit status 1             #
+#If argument errors occur and 'quietmode' is not specified, user can change input arguments          #
+#A succesful run of maillist, will output a list of class members to a file in the current directory #
+#This file will be named after the 5 digit class CRN number                                          #
+#It will be an alphabetical list of e-mail addresses of all class members for specified CRN          #
+#!!!The current directory must be writable by user, if not maillist will terminate with exit status 1#
+#If 'quietmode' is specified, maillist will terminate after writing the CRN list file                #
+#If 'quietmode' is not specified, maillist will output:                                              #
+#                  >the number of students in the class                                              #
+#                  >the number of faculty in the class                                               #
+#                  >the class group name                                                             #
+#                  >the class group id                                                               #
+#                  >the absolute path to the generated CRN file                                      #
+#*********************************************End****************************************************#
+######################################################################################################
+
+crn=false
+quiet=false
+progname=$(basename $0)
+#Begin testing for initial argument conditions
+if [[  $# != 1 && $# != 2 ]]; then #allows for reset if $# is 0 or >2
+    echo "Running $progname requires one or two arguments" >&2
+    echo "Usage: $progname [-q] 12345" >&2
+    read -p "Input choice of quiet vs. non-quiet mode
+[Input either '-q' or leave blank for non-quiet]: " quietmode
+    while [[ $quietmode != "-q" && $quietmode != "" ]]; do
+        read -p "Not a recognized option, please try again: " quietmode
+    done
+    [[ $quietmode = "-q" ]] && quiet=true
+    read -p "Input crn: " crn
+fi
+
+if [ $# -eq 2 ]; then #allows for reset if $# is 2, with $1 entered incorrectly
+    quietmode=$1
+    while [[ $quietmode != "-q" && $quietmode != "" ]]; do
+        echo "First argument must be '-q'" >&2
+        read -p "Please enter '-q' or leave blank for non-quiet: " quietmode
+    done
+    [[ $quietmode = "-q" ]] && quiet=true
+    shift
+fi
+#kicks in if $# is 1, or after $2 has been shifted
+[[ $crn = false ]] && crn=$1
+[[ $crn = "-q" ]] && quiet=true    
+
+while ! echo "$crn" | grep -Eq "^[0-9]{5}$";do
+    [[ $quiet = true ]] && exit 1
+    echo "Argument must be a 5 digit CRN number." >&2
+    read -p "Please enter 5 digit CRN class number: " crn
+done
+#End of initital argument tests
+##############################################################################################
+#setup testing for the crn_number 
+#if quiet=true, then any error will cause the program to exit immediately
+#otherwise, allow the user to try again
+while ! getent group | grep -Eq "^c$crn:";do
+    [[ $quiet = true ]] && exit 1
+    echo "$crn number is not a recognized class" >&2
+    read -p "Please input another 5 digit CRN number: " crn
+done
+clist=$(getent group | grep -E "c$crn:" | cut -d":" -f4) #this produces the class list
+#creation of an array of class members
+IFS=',' read -r -a array <<< "$clist"
+IFS=$'\n' sorted=($(sort <<<"${array[*]}")) #sorts the array alphabetically
+unset IFS
+#ensure that the current directory is writable, if not exit with error message
+BASEDIR=$(dirname $0)
+if [ ! -w $BASEDIR ]; then
+    [[ $quiet = true ]] && exit 1
+    echo "Can not write to the current directory.  Please run script in another location." >&2 && exit 1
+fi 
+#create an empty file in current directory named after the class crn number
+touch "${crn}"
+#traverse the arrary, if name is listed under /students give them email extension @mail.ccsf.edu
+#if not listed under /students, they are faculty and need extension @ccsf.edu
+#write emails in sorted order to the crn file
+for i in "${sorted[@]}";do
+    if ls /students | grep -Eq "^$i$";then
+        echo "$i@mail.ccsf.edu" >> $crn
+    else
+        echo "$i@ccsf.edu" >> $crn
+    fi
+done
+[[ $quiet = true ]] && exit 0
+students=0
+faculty=0
+while read line; do
+    [[ $line =~ "mail.ccsf.edu" ]] && ((students ++)) #produce a count of students
+    [[ $line =~ "@ccsf.edu" ]] && ((faculty ++)) #produce a count of faculty members
+done < $crn
+#display stats to stdout if quiet mode was not selected
+echo "The class group name is $(getent group | grep -E "c$crn:" | cut -d":" -f1)"
+echo "The class group id is $(getent group | grep -E "c$crn:" | cut -d":" -f3)"
+echo "There are $students students in the class"
+echo "There are $faculty faculty in the class"
+echo "The absolute path to $crn is $(readlink -f $crn)"
+
