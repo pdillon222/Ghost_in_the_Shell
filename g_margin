@@ -3,7 +3,7 @@
 #program must run on MAC / BSD systems
 
 
-#create arrays for variable storage
+#create arrays for value storage
 item_name=()
 item_price=()
 
