@@ -1,0 +1,25 @@
+#!/bin/bash
+
+ps_server="/Volumes/JB Server/JBS/_PRODUCTION/Production_Schedule"
+year=$(date +"%Y") #outputs full numerical year
+month=$(date +"%B") #outputs Month
+shortday=$(date | cut -d" " -f1) #outputs abbreviated alphabetic day  
+
+yearfold="${ps_server}/${year}"
+! [ -d "${yearfold}" ] && mkdir "${yearfold}"
+
+monthfold="${yearfold}/${month}"
+! [ -d "${monthfold}" ] && mkdir "${monthfold}" 
+
+# if current day is Monday, make a new directory for the week.  Daily subdirectories will be created within this directory
+[[ $(date +"%w") == 1 && ! -d "${weekfold}" ]] && weekfold="${monthfold}/Week-$(date +"%D" | sed 's|/|_|g')" && ! [[ -d ${weekfold} ]] && mkdir "${weekfold}" 
+# if current day != Monday, find the most recently created directory and use it as parent directory for subdirectories
+[[ ! $(date +"%w") == 1 ]] && weekfold="$(ls -td -- "${monthfold}"/* | head -n 1)"   
+
+dayfold="${weekfold}/${shortday}"
+! [ -d "${dayfold}" ] && mkdir "${dayfold}"
+
+#create an archived version of the current production schedule in year>month>week>day_of_week
+cp -a ~/Desktop/Current_Production_Schedule.xlsm "${dayfold}/PS_$(date +"%D" | sed 's|/|_|g')"
+#save the most recent version to the 'Current' directory
+cp ~/Desktop/Current_Production_Schedule.xlsm "${ps_server}/Current"
