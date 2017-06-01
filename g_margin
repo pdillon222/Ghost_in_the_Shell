@@ -71,10 +71,10 @@ function runloops() {
 
 runloops
 
-function display_array () {
+function display_array() {
 #display array values from name array, and associated value array
 	item_counter=-1
-	for i in ${item_name[*]}; do
+	for i in ${item_name[@]}; do #changed from '*' to '@'
 	    ((item_counter++))
 	    echo "${item_name[$item_counter]}=${item_price[$item_counter]}"
 	done
