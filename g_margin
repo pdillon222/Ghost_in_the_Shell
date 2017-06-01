@@ -40,12 +40,12 @@ function runloops() {
 		    #acquire cost of first component
 		    read -p "Please enter cost of component $item: " cost
 		    [[ ! $cost =~ ^[0-9]*\.?[0-9]*$ ]] && echo "Cost must be a in integer format
-		Please try again" && continue
+Please try again" && continue
 		    #acquire quantity of specified component 
 		    read -p "Please enter quantity of component $item: " quant
 		    while [[ ! $quant =~ ^[0-9]*\.?[0-9]*$ ]];do
 			echo "Quantity must be in integer format 
-		Please try again"   
+Please try again"   
 			read -p "Please enter quantity of item $item: " quant
 		    done
 		    
@@ -107,8 +107,3 @@ while [[ $word =~ "YES" ]];do
 #check back in with user
 #loop until $word == "NO"
 done
-
-
-
-
-
