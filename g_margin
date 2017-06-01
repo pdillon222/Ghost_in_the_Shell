@@ -11,8 +11,18 @@ item_price=()
 function uppercase() {
     #translate a string into all uppercase letters (to minimize user input error)
     #BSD does not support parameter substitution
+    echo "You have selected $1"
     word=$(echo $1 | sed 'y/abcdefghijklmnopqrstuvwxyz/ABCDEFGHIJKLMNOPQRSTUVWXYZ/')
     echo $word
+}
+
+function booltest() {
+    uppercase $1
+    while [[ $word != "YES" && $word != "NO" ]];do
+        read -p "Please input either 'yes' or 'no': " bool_prompt
+        uppercase $bool_prompt
+    done
+    [[ $word =~ "NO" ]] && break || continue 
 }
 
 function runloops() {
@@ -49,31 +59,56 @@ function runloops() {
 		    ((++item))
 		    
 		    read -p "Are there more components associated with the fixture? {yes | no}: " comprompt
-		    uppercase $comprompt
-		    while [[ $word != "YES" && $word != "NO" ]];do
-			read -p "Please input either 'yes' or 'no': " comprompt
-			uppercase $comprompt
-		    done
-		    comprompt=$word
-		    [[ $comprompt =~ "NO" ]] && break || continue
+                    booltest $comprompt 
+		    
 		done 
             item_price+=("\$$prodprice")
 	    read -p "Would you like to input costs for more fixtures? {yes | no}: " fixprompt
-	    uppercase $fixprompt
-	    while [[ $word != "YES" && $word != "NO" ]];do
-		 read -p "Please input either 'yes' or 'no': " fixprompt
-		 uppercase $fixprompt
-	    done
-	    fixprompt=$word
-	    [[ $fixprompt =~ "NO" ]] && break || continue
-	done
+	    booltest $fixprompt
+	
+        done
 }
 
 runloops
 
-item_counter=-1
-for i in ${item_name[*]}; do
-    ((item_counter++))
-    echo "${item_name[$item_counter]}=${item_price[$item_counter]}"
+function display_array () {
+#display array values from name array, and associated value array
+	item_counter=-1
+	for i in ${item_name[*]}; do
+	    ((item_counter++))
+	    echo "${item_name[$item_counter]}=${item_price[$item_counter]}"
+	done
+}
+
+echo "Fixtures and associated costs are:"
+display_array
+
+#allow the user the ability to go back and edit the individual array values
+read -p "Would you like to edit fixture costs?
+{ yes (to edit) | no (to proceed with gross margin calculations) }: " proceed
+uppercase $proceed
+
+while [[ $word != "YES" && $word != "NO" ]];do
+    read -p "Please input either 'yes' or 'no': " bool_prompt
+    uppercase $bool_prompt
 done
+#create a loop to edit the array values
+
+while [[ $word =~ "YES" ]];do
+    display_array
+    echo "Which fixture's cost would you like to edit?"
+    counter=-1
+    for i in "${item_name[@]}";do
+        ((counter++))
+        echo "To select $i, Please enter $((counter+1))"
+    done
+    read -p "Please choose the fixture to edit: " fixture_edit
+#some stuff to edit the array values
+#check back in with user
+#loop until $word == "NO"
+done
+
+
+
+
 
