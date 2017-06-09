@@ -92,9 +92,10 @@ while [[ $word != "YES" && $word != "NO" ]];do
     read -p "Please input either 'yes' or 'no': " bool_prompt
     uppercase $bool_prompt
 done
-#create a loop to edit the array values
 
+#create a loop to edit the array values
 while [[ $word =~ "YES" ]];do
+    #will run until $word has been changed to !=YES
     display_array
     echo "Which fixture's cost would you like to edit?"
     counter=-1
@@ -102,8 +103,27 @@ while [[ $word =~ "YES" ]];do
         ((counter++))
         echo "To select $i, Please enter $((counter+1))"
     done
+    
     read -p "Please choose the fixture to edit: " fixture_edit
-#some stuff to edit the array values
-#check back in with user
-#loop until $word == "NO"
+     
+    #make sure the user inputs an integer, and that it is in the range of the array
+    while [[ ! $fixture_edit =~ ^[0-9] ]];do
+        read -p "To select a fixture, please enter it's numerical id: " fixture_edit
+    done
+    
+    while [[ $fixture_edit > ${#item_name[*]} ]] || [[ $fixture_edit < 1 ]];do
+        read -p "Chosen numerical id is out of range, pick another: " fixture_edit
+            while [[ ! $fixture_edit =~ ^[0-9] ]];do
+                read -p "To select a fixture, please enter it's numerical id: " fixture_edit
+            done
+    done
+    echo ""
+    echo "You have selected ${item_name[$((fixture_edit - 1))]}"
+    echo ""
+    echo ""
+    array_index=$((fixture_edit - 1))
+    echo "you will be editing the cost of ${item_name[$array_index]}, whose cost is ${item_price[$array_index]}"
+    #remember that the loop must continue, because user has chosen to edit fixture costs
 done
+
+
