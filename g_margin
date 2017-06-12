@@ -124,6 +124,26 @@ while [[ $word =~ "YES" ]];do
     array_index=$((fixture_edit - 1))
     echo "you will be editing the cost of ${item_name[$array_index]}, whose cost is ${item_price[$array_index]}"
     #remember that the loop must continue, because user has chosen to edit fixture costs
+    read -p "Please enter the new fixture cost: " newcost
+    while [[ ! $newcost =~ ^[0-9]*\.?[0-9]*$ ]];do
+        echo "New fixture cost must be in integer format 
+Please try again"   
+        read -p "Please enter the new fixture cost of ${item_name[$array_index]}: " newcost
+    done
+    #update the array value to the new cost
+    item_price[$array_index]="\$$newcost"
+
+    read -p "Would you like to edit more fixture costs? {yes | no}: " edit_cost
+    uppercase $edit_cost
+    while [[ $word != "YES" && $word != "NO" ]];do
+          read -p "Please input either 'yes' or 'no': " bool_prompt
+          uppercase $bool_prompt
+    done
+    [[ $word = "NO" ]] && break
 done
+
+echo "The loop has been broken, fixture costs are finalized"
+
+
 
 
