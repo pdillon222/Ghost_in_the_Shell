@@ -93,6 +93,7 @@ while [[ $word != "YES" && $word != "NO" ]];do
     uppercase $bool_prompt
 done
 
+#######################################################################################################################
 #create a loop to edit the array values
 while [[ $word =~ "YES" ]];do
     #will run until $word has been changed to !=YES
@@ -144,6 +145,6 @@ done
 
 echo "The loop has been broken, fixture costs are finalized"
 
-
-
+########################################################################################################################
+#cost inputs have now been finalized
 
