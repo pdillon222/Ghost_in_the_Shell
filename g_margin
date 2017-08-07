@@ -76,7 +76,7 @@ function display_array() {
 	item_counter=-1
 	for i in ${item_name[@]}; do #changed from '*' to '@'
 	    ((item_counter++))
-	    echo "${item_name[$item_counter]}=${item_price[$item_counter]}"
+	    echo "${item_name[$item_counter]}:${item_price[$item_counter]}"
 	done
 }
 
@@ -143,8 +143,12 @@ Please try again"
     [[ $word = "NO" ]] && break
 done
 
-echo "The loop has been broken, fixture costs are finalized"
+#echo "fixtures:${item_name[*]}"
+#echo "prices:${item_price[*]}"
 
 ########################################################################################################################
-#cost inputs have now been finalized
+#cost inputs have now been finalized, allow the user to choose which item they would like to determine margins for
+#item_name contains fixture names, item_price contains finalized item prices
+
+
 
