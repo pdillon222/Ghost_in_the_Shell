@@ -1,8 +1,8 @@
 #!/bin/bash
 
-PATH=${PATH}:/mnt/c/Users/JamesDillon/Desktop/Ghost_in_the_Shell/g_margin
-cost
+PATH=${PATH}:$(pwd)
+source cost
 
 echo "Array values in the current shell:"
-echo ${item_name[*]}
-echo ${item_price[*]}
+echo ${item_name[@]}
+echo ${item_price[@]}

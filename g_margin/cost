@@ -146,6 +146,9 @@ done
 #echo "fixtures:${item_name[*]}"
 #echo "prices:${item_price[*]}"
 
+export item_name
+export item_cost
+
 ########################################################################################################################
 #cost inputs have now been finalized, allow the user to choose which item they would like to determine margins for
 #item_name contains fixture names, item_price contains finalized item prices
