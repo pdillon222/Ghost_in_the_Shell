@@ -1,3 +1,7 @@
 #!/bin/bash
 
-./input_cost
+./cost
+
+echo "Array values in the current shell:"
+echo ${item_name[*]}
+echo ${item_price[*]}
