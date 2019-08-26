@@ -1,0 +1,344 @@
+#!/bin/bash
+
+: 'TO-DO
+  Program Goals:
+  - Create function for displaying values within a range
+  - Begin thinking about a means for gathering, and creating
+    information on summary statistics
+  - Go through the program and add input validation
+  - Clean up comments
+TO-DO'
+
+
+[[ "$1" == "--dry-run" ]] && testing=true
+
+###############
+## Functions ##
+###############
+
+format_logic(){
+  : '<format_logic>:
+  Create a function that will:
+    - Colorize output based on +/- value
+    - Automatically increment values
+    - Place into CSV and format accordingly
+    - Color schema for:
+      - Days of week
+      - Months of year
+  <format_logic>'
+
+    ## Buffer
+    NO_FORMAT="\033[0m"
+    # Green background, pink text
+    G_FOR="\033[38;5;199m"
+    G_BAK="\033[48;5;83m"
+    B_FOR="\033[38;5;86m"
+    B_BAK="\033[48;5;9m"
+    # Sunday
+    
+    # Monday
+
+    # Tuesday
+
+    # Wednesday
+
+    # Thursday
+
+    # Friday
+
+    # Saturday
+
+}
+format_logic
+
+syncdownlogs(){
+  : '<syncdownlogs>
+  - Syncs local logs folder w/ remote S3 logs repo
+  <syncdownlogs>'
+
+  export AWS_ACCESS_KEY_ID='AKIAIKVAJ5BOMXHNP2PQ'
+  export AWS_SECRET_ACCESS_KEY='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'
+  export AWS_DEFAULT_REGION='us-west-2'
+
+  aws s3 sync s3://pdillon222bucket/healthlog/logs/ /usr/local/lib/healthlog/logs
+  [[ $? != 0 ]] && echo "[Error]: !!!Failed to pull logs down from S3; exiting" && exit 1
+}
+
+syncuplogs(){
+  : '<syncuplogs>
+  - Syncs remote S3 logs folder repo w/ local changes applied to logs
+  <syncuplogs>'
+
+  aws s3 sync /usr/local/lib/healthlog/logs s3://pdillon222bucket/healthlog/logs/
+}
+
+check_args(){
+  : '<check_args>
+  - Arg tests will occur
+  - Could test arguments via case statement for appropriate test to run
+  <check_args>'
+
+  echo "pass"
+}
+
+recent_summary(){
+  : '<recent_summary>
+  - Displays recent n days of stats
+    per $1
+  <recent_summary>
+  logs=($(ls -lrt /usr/local/lib/healthlog/logs | awk "{print $9}")) 
+  echo ${logs[$((${#logs[@]}-1))]}
+  '
+
+}
+
+missing_vals(){
+  : '<missing_vals>
+  - Accounts for missing entry values in the logs
+  - Prevents a new entry being injected, with previous 
+    missing values
+  <missing_vals>'
+
+  entry=${1}
+  target_line=${2}
+  log=${3}
+
+  for field in "${entry}" "${target_line}" "${log}"; do
+    if [[ ${field} == '' ]]; then
+      echo -e "\n${B_BAK}${B_FOR}!!!Error:${NO_FORMAT} Please input previous dates\n\n"
+      exit
+    fi
+  done
+  }
+
+insert_entry(){
+  : '<insert_entry>
+  - Iserts entry strings into pertinent logs
+  - To be as distribution independent as possible:
+    - The function will read log contents into an array
+    - The array contents will overwrite $2 with a new value from $1
+  *Arguments:
+    - $1: The entry string to be added
+    - $2: The log for which the string is to be added
+  *Returns:
+    - None
+  <insert_entry>'
+
+  #ensure there are no days missing between entries
+  missing_vals "$@"
+   
+  entry=${1}
+  target_line=${2}
+  log=${3}
+  
+  log_lines=()
+  append_flag=true
+  entry_found=false
+
+  while read line; do
+    if [[ "${line}" != "${target_line}" ]]; then
+      log_lines+=("${line}")
+    else
+      log_lines+=("${entry}")
+      append_flag=false
+    fi
+  done < ${log}
+
+  [[ ${append_flag} == true ]] && log_lines+=("${entry}")
+  
+  #overwriting contents of log with new value
+  cp ${log} "${log}.bak" && rm ${log}
+
+  for ((i=0;i<"${#log_lines[*]}";i++)); do
+    echo "${log_lines[${i}]}" >> ${log}   
+  done
+
+  chown james:james ${log} && chmod 770 ${log}
+
+  #accounting for testing option
+  if [[ $? == 0 ]]; then
+    if [[ ${testing} != true ]]; then
+      rm "${log}.bak"
+    else
+      chown james:james "${log}.bak" && chmod 770 "${log}.bak" 
+      mv "${log}.bak" "${log}"
+    fi
+  fi
+
+  echo -e "\nNew contents of ${log}:"
+  while read line; do
+    if [[ "${line}" != "${entry}" ]]; then
+      echo "${line}"
+    else
+      #will need to work on color formatting
+      echo -e "${G_FOR}${G_BAK}${line}${NO_FORMAT}"
+    fi
+  done < ${log}
+  echo -e "\n"
+}
+
+csv_insert(){
+  : '<csv_insert>
+  -The main entry point, and program logic for adding new entries
+   to the approprate csv file 
+  -Important variables:
+    - `crnt_entry` : the new csv row value to be added
+    - `crnt_log`   : the csv file to which `crnt_entry` will be added
+    - `prev_entry` : entry values immediately preceding `crnt_entry`
+    - `prev_log`   : location of the csv, containing entry 1 day prior to `crnt_entry`
+    - `prior_entry`: entry immediately preceding `prev_entry`
+    - `prior_log`  : location of the csv, containing entry 2 days prior to `crnt_entry`
+  <csv_insert>'
+
+  path='/usr/local/lib/healthlog'
+  crnt_epoch="$1"
+  ex="$2"
+  su="$3"
+  weight="$4"
+
+  crnt_date=$(date +"%m/%d/%y" --date=@${crnt_epoch})
+  csv_file="$(date +"%m" --date=@${crnt_epoch})_$(date +"%y" --date=@${crnt_epoch}).csv"
+  crnt_log="${path}/logs/${csv_file}"
+  #create the new log if it does not exist
+  if [[ ! -f ${crnt_log} ]]; then
+    csv_header="DAY,DATE,EXERCISE,SUGAR,WEIGHT"  
+    echo ${csv_header} > ${crnt_log}
+    chown james:james ${crnt_log}
+  fi
+  crnt_entry="$(date --date=${crnt_date} | awk '{print $1}'),"
+  crnt_entry+="${crnt_date},__,__,${weight}"
+  
+  #handle date and log info for day prior to current
+  prev_epoch=$(date +"%s" --date=@$((${crnt_epoch}-86400)))
+  prev_date=$(date +"%m/%d/%y" --date=@${prev_epoch})
+  prev_file="$(date +"%m" --date=@${prev_epoch})_$(date +"%y" --date=@${prev_epoch}).csv"
+  prev_log="${path}/logs/${prev_file}"
+  prev_entry="$(grep ${prev_date} ${prev_log})"
+
+  #handle date and log infor day day prior to previous (for incrementation)
+  prior_epoch=$(date +"%s" --date=@$((${prev_epoch}-86400)))
+  prior_date=$(date +"%m/%d/%y" --date=@${prior_epoch})
+  prior_file="$(date +"%m" --date=@${prior_epoch})_$(date +"%y" --date=@${prior_epoch}).csv"
+  prior_log="${path}/logs/${prior_file}"
+  prior_entry="$(grep ${prior_date} ${prior_log})"
+
+  prior_ex=$(echo ${prior_entry} | awk -F',' '{print $3}')
+  prior_su=$(echo ${prior_entry} | awk -F',' '{print $4}')
+
+
+  #incrementing ex value from prior to previous entry
+  if [[ "${ex}" == [yY] ]]; then
+    #`prev_ex` becomes 1 if `prior_ex` == '-'
+    if [[ "${prior_ex}" == '-' ]]; then
+      prev_exval='+(1)'
+    elif [[ "${prior_ex}" != '-' ]]; then
+      prior_exval=$(echo ${prior_ex} | sed 's/.(\([0-9]*\))/\1/')
+      prev_exval="+($((prior_exval+1)))"
+    fi
+  else
+    prev_exval='-'
+  fi
+
+  #begin creating the new prev_entry string
+  inc_prev=$(echo ${prev_entry} | sed "s/__/${prev_exval}/") 
+
+  #incrementing su value from prior to previous entry
+  if [[ "${su}" =~ [nN] ]]; then
+    #`prev_su` becomes 1 if `prior_su` -- '+'
+    if [[ "${prior_su}" =~ "+" ]]; then 
+      prev_suval='-(1)'
+    elif [[ "${prior_su}" != '+' ]]; then
+      prior_suval=$(echo ${prior_su} | sed 's/.(\([0-9]*\))/\1/')
+      prev_suval="-($((prior_suval+1)))"
+    fi
+  else
+    prev_suval='+'
+  fi
+
+  #increment the su value in prev_entry string
+  inc_prev=$(echo ${inc_prev} | sed "s/__/${prev_suval}/")
+
+  #insert string function for prev_entry
+  #insert string function for crnt_entry
+  insert_entry ${inc_prev} ${prev_entry} ${prev_log}
+  insert_entry ${crnt_entry} ${crnt_entry} ${crnt_log}
+}
+
+new_input(){
+  : '<new_input>
+  - Will append a new input entry into appropriate CSV
+  - Will increment ex and su values from previous day
+  <new_input>'
+ 
+  read -p "Create entry for current or prior day?[C|P]: " dayselect
+  #run argument check
+  if [[ ${dayselect} =~ [pP] ]]; then
+    read -p "Please enter prior date [mm/dd/yy]: " priordate
+    target_date=$(date +"%s" --date=${priordate})
+  elif [[ ${dayselect} =~ [cC] ]]; then
+    target_date=$(date +"%s")
+  else
+    echo -e "'${dayselect}' is not a recognized option\nExiting"
+    exit 1
+  fi
+  read -p "Please enter weight for $(date +"%m/%d/%y" --date=@${target_date}): " weight
+  read -p "Exercise previous day?[y|n]: " ex
+  read -p "Sugar intake previous day?[y|n]: " su
+  input_args=(${target_date} ${ex} ${su} ${weight} ) 
+  #handing off values to csv_insert function
+  #date is being given in epoch time for simpler calculations
+  csv_insert ${input_args[@]}   
+}
+
+print_dates(){
+  : '<print_dates>
+  - Function simply prints out a range of dates
+  - Format: weekday,mm/dd/yy
+  <print_dates>'
+
+  read -p "Enter starting date [mm/dd/yy]: " indate
+  ###run test on indate
+  read -p "Enter desired number of days of output: " numdays
+  epoch_date=$(date +"%s" --date="${indate} 00:00:00")
+  for ((i=0;i<${numdays};i++)); do
+    IFS=''
+    echo "$(date --date=@${epoch_date} | awk '{print $1}'),\
+    $(date +"%m/%d/%y" --date=@${epoch_date})" | sed 's/ *//g' 
+    epoch_date=$((epoch_date+86400))
+  done
+}
+#print_dates 
+
+testing(){
+  #Testing
+  : 'Testing
+  echo -e "\nEntered date: ${crnt_date}"
+  echo -e "Current log: ${crnt_log}"
+  echo -e "Current entry: ${crnt_entry}"
+  echo -e "Previous log: ${prev_log}"
+  echo -e "Previous entry: ${prev_entry}"
+  echo -e "Prior log: ${prior_log}"
+  echo -e "Prior entry: ${prior_entry}\n"
+
+  #after incrementation
+  echo -e "Prior enttry: ${prior_entry}"
+  echo -e "Incremented previous entry: ${prev_entry}"
+  echo -e "Current string: ${current_entry}"
+  echo "Prior_entry == ${prior_entry}"
+  echo "Prev_entry == ${prev_entry}"
+  echo "Previous su_val == ${prev_suval}"
+  echo "Updated prev_entry == ${inc_prev}"
+
+  echo -e "\nEntry string:\n${prev_entry}\nTo be added to ${prev_log}"
+  echo -e "\nEntry string:\n${crnt_entry}\nTo be added to ${crnt_log}"
+
+  Testing'
+} 
+
+#######################
+## Program Execution ##
+#######################
+
+syncdownlogs
+new_input
+syncuplogs
