@@ -56,8 +56,10 @@ syncdownlogs(){
   - Syncs local logs folder w/ remote S3 logs repo
   <syncdownlogs>'
 
-  export AWS_ACCESS_KEY_ID='AKIAIKVAJ5BOMXHNP2PQ'
-  export AWS_SECRET_ACCESS_KEY='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'
+  export AWS_ACCESS_KEY_ID="$(grep -A 2 'personal' ~/.aws/credentials | \
+                              grep 'key_id' | awk '{print $3}')"
+  export AWS_SECRET_ACCESS_KEY="$(grep -A 2 'personal' ~/.aws/credentials | \
+                                  grep 'secret_access' | awk '{print $3}')"
   export AWS_DEFAULT_REGION='us-west-2'
 
   aws s3 sync s3://pdillon222bucket/healthlog/logs/ /usr/local/lib/healthlog/logs
