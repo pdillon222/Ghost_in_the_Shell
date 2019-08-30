@@ -49,7 +49,7 @@ format_logic(){
     # Saturday
 
 }
-format_logic
+
 
 syncdownlogs(){
   : '<syncdownlogs>
@@ -95,6 +95,7 @@ recent_summary(){
   echo "pass"
 }
 
+
 data_backfill(){
   : '<data_backfill>
   - Is called by `missing_vals`, in the event that entry data is found to be missing
@@ -103,7 +104,7 @@ data_backfill(){
 
   echo -e "\n${B_BAK}${B_FOR}!!!Error:${NO_FORMAT} Data backfill needed: Please input previous dates\n\n"
   echo -e "'entry' == ${entry}\n'target_line' == ${target_line}\n'log' == ${log}" 
-  # [ ] - 
+  # [ ] - start at current entry date, and look back to determine days needing backfill
   exit 1
 }
 
@@ -125,7 +126,8 @@ missing_vals(){
       data_backfill
     fi
   done
-  }
+}
+
 
 insert_entry(){
   : '<insert_entry>
@@ -356,8 +358,8 @@ testing(){
 ## Program Execution ##
 #######################
 
-echo "this is running the test branch"
 
+format_logic
 syncdownlogs
 new_input
 syncuplogs
