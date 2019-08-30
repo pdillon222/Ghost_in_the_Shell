@@ -92,7 +92,21 @@ recent_summary(){
   echo ${logs[$((${#logs[@]}-1))]}
   '
 
+  echo "pass"
 }
+
+data_backfill(){
+  : '<data_backfill>
+  - Is called by `missing_vals`, in the event that entry data is found to be missing
+  - look arguments inherited from `missing_vals`
+  <data_backfill>'
+
+  echo -e "\n${B_BAK}${B_FOR}!!!Error:${NO_FORMAT} Data backfill needed: Please input previous dates\n\n"
+  echo -e "'entry' == ${entry}\n'target_line' == ${target_line}\n'log' == ${log}" 
+  # [ ] - 
+  exit 1
+}
+
 
 missing_vals(){
   : '<missing_vals>
@@ -108,7 +122,7 @@ missing_vals(){
   for field in "${entry}" "${target_line}" "${log}"; do
     if [[ ${field} == '' ]]; then
       echo -e "\n${B_BAK}${B_FOR}!!!Error:${NO_FORMAT} Please input previous dates\n\n"
-      exit
+      data_backfill
     fi
   done
   }
@@ -125,6 +139,7 @@ insert_entry(){
   *Returns:
     - None
   <insert_entry>'
+
 
   #ensure there are no days missing between entries
   missing_vals "$@"
@@ -340,6 +355,8 @@ testing(){
 #######################
 ## Program Execution ##
 #######################
+
+echo "this is running the test branch"
 
 syncdownlogs
 new_input
